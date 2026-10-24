@@ -86,7 +86,9 @@ new MutationObserver(invalidateColors).observe(document.documentElement, { attri
 function geometry(): MapGeometry {
   const S = getCurrent();
   const meta = currentMeta();
-  return { calib: S.calib, imgW, imgH, mapSize: meta.sizeX, mapSizeZ: meta.sizeZ };
+  // знімок деяких теренів покриває трохи менше за розмір терену (preset.imageSpan): прив'язуємо зображення до цього розміру
+  const span = meta.preset?.imageSpan;
+  return { calib: S.calib, imgW, imgH, mapSize: span ?? meta.sizeX, mapSizeZ: span ?? meta.sizeZ };
 }
 
 export function syncImageSize(): void {

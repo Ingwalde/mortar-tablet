@@ -27,6 +27,8 @@ export interface TerrainPreset {
   /** Розмір терену в метрах (X — схід, Z — північ). */
   sizeX: number;
   sizeZ: number;
+  /** Скільки метрів від (0,0) справді покриває супутниковий знімок, якщо не рівно розмір терену (Gogland: ≈12279 м замість 12288). */
+  imageSpan?: number;
   /** Офіційний терен Reforger чи мод-карта. */
   official: boolean;
   /** Онлайн-тайли reforger.recoil.org — наявні лише для Everon і Arland. */
@@ -49,6 +51,7 @@ interface RawPreset {
   name: string;
   sizeX: number;
   sizeZ: number;
+  imageSpan?: number;
   official: boolean;
   tiles?: OnlineTiles;
   places?: [string, number, number, number?][];

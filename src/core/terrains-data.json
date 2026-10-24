@@ -522,6 +522,7 @@
     "name": "Gogland",
     "sizeX": 12288,
     "sizeZ": 12288,
+    "imageSpan": 12279,
     "official": false,
     "places": [
       [
