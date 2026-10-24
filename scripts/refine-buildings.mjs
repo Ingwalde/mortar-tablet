@@ -90,12 +90,13 @@ async function pyramidSource(t) {
   const lastW = (await sharp(join(dir, String(z), "0", `${C - 1}.${ext}`)).metadata()).width;
   const lastH = (await sharp(join(dir, String(z), String(R - 1), `0.${ext}`)).metadata()).height;
   const W = (C - 1) * T + lastW, H = (R - 1) * T + lastH;
+  const spanX = t.imageSpan ?? t.sizeX, spanZ = t.imageSpan ?? t.sizeZ; // метрів, які справді покриває знімок
   return {
-    pxPerM: Math.min(W / t.sizeX, H / t.sizeZ),
+    pxPerM: Math.min(W / spanX, H / spanZ),
     blur: 0.8,
     W, H,
     locate(x, zz) {
-      const ix = (x / t.sizeX) * W, iy = (1 - zz / t.sizeZ) * H;
+      const ix = (x / spanX) * W, iy = (1 - zz / spanZ) * H;
       const col = Math.min(C - 1, Math.max(0, Math.floor(ix / T))), row = Math.min(R - 1, Math.max(0, Math.floor(iy / T)));
       return { key: row + "_" + col, px: ix - col * T, py: iy - row * T, size: T, row, col };
     },
@@ -419,6 +420,7 @@ async function offsetSearch(cx, cz, rad) {
   let best = { s: -1 };
   const base = score(0, 0);
   for (let dx = -12; dx <= 12.001; dx += 0.5) for (let dz = -12; dz <= 12.001; dz += 0.5) { const s = score(dx, dz); if (s > best.s) best = { s, dx, dz }; }
+  for (let dx = best.dx - 1; dx <= best.dx + 1.001; dx += 0.1) for (let dz = best.dz - 1; dz <= best.dz + 1.001; dz += 0.1) { const s = score(dx, dz); if (s > best.s) best = { s, dx: Math.round(dx * 10) / 10, dz: Math.round(dz * 10) / 10 }; }
   console.log(`${id} @ ${cx},${cz}: ${sel.length} будівель; найкращий зсув dx=${best.dx} dz=${best.dz}, контраст ${best.s.toFixed(1)} проти ${base.toFixed(1)} без зсуву`);
 }
 const offOpt = opt("--offset");
