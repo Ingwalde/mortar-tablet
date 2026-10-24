@@ -98,7 +98,9 @@ async function navigate(request) {
   const cache = await caches.open(SHELL);
   try {
     // Без мережі браузер довго чекає — тримаємо швидкий відступ на кеш.
-    const res = await withTimeout(fetch(request), 4000);
+    // сторінку завжди звіряємо з сервером (no-cache), щоб кеш браузера не віддав її застарілу копію після оновлення сайту
+    const u = new URL(request.url);
+    const res = await withTimeout(fetch(u.pathname + u.search, { cache: "no-cache", credentials: "same-origin" }), 4000);
     if (res.ok && new URL(request.url).pathname === ROOT) cache.put(ROOT, res.clone());
     return res;
   } catch {

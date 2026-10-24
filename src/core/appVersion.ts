@@ -6,6 +6,16 @@ export function parseVersion(v: string): [number, number, number] | null {
 }
 
 /** true, якщо latest строго новіша за current; нерозпізнані версії — false. */
+/** Збірка, якій належить service worker: беремо з параметра `v` адреси його скрипта (`sw.js?v=1.1.2`). */
+export function swBuildOf(scriptUrl: string | undefined): string | null {
+  if (!scriptUrl) return null;
+  try {
+    return new URL(scriptUrl).searchParams.get("v");
+  } catch {
+    return null;
+  }
+}
+
 export function isNewerVersion(latest: string, current: string): boolean {
   const a = parseVersion(latest);
   const b = parseVersion(current);

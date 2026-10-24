@@ -4,7 +4,7 @@
  *  - Android-застосунок: раз на пів доби дивимось останній реліз на GitHub і пропонуємо завантажити APK.
  */
 import { getRoot } from "./state";
-import { isTrustedReleaseUrl, updateFrom, type ReleaseLike } from "@core/appVersion";
+import { isTrustedReleaseUrl, swBuildOf, updateFrom, type ReleaseLike } from "@core/appVersion";
 import { t } from "./i18n";
 import { isNativeApp, isStandalone } from "./platform";
 
@@ -94,6 +94,9 @@ function watchServiceWorker(): void {
   const hadController = !!sw.controller;
   sw.addEventListener("controllerchange", () => {
     if (!hadController) return;
+    // сторінка вантажиться з мережі першою, тож після оновлення сторінки вона вже нова, а service worker лише наздоганяє:
+    // пропонуємо перезавантаження, лише якщо збірка сторінки відрізняється від збірки нового service worker-а
+    if (swBuildOf(sw.controller?.scriptURL) === __APP_VERSION__) return;
     if (getRoot().updateNotice) showBanner(t("updReloadText"), t("updReload"), () => location.reload());
   });
   const poll = (): void => {

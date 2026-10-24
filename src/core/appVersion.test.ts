@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { apkUrlOf, isNewerVersion, isTrustedReleaseUrl, parseVersion, updateFrom } from "./appVersion";
+import { apkUrlOf, isNewerVersion, isTrustedReleaseUrl, parseVersion, swBuildOf, updateFrom } from "./appVersion";
 
 const R = "https://github.com/Ingwalde/mortar-tablet/releases";
+
+describe("swBuildOf", () => {
+  it("читає збірку з адреси service worker-а", () => {
+    expect(swBuildOf("https://x.github.io/mortar-tablet/sw.js?v=1.1.2")).toBe("1.1.2");
+    expect(swBuildOf("https://x.github.io/mortar-tablet/sw.js")).toBeNull();
+    expect(swBuildOf("not a url")).toBeNull();
+    expect(swBuildOf(undefined)).toBeNull();
+  });
+});
 
 describe("appVersion", () => {
   it("розбирає версії з префіксом v і без", () => {
