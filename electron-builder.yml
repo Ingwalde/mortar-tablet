@@ -61,8 +61,21 @@ publish:
   owner: Ingwalde
   repo: mortar-tablet
 nsis:
+  # майстер з вибором папки, без прав адміністратора й без питання «для всіх користувачів» (build/installer.nsh)
   oneClick: false
   allowToChangeInstallationDirectory: true
+  perMachine: false
+  # першим вікном вибирається мова (українська або англійська); решту тексту майстра перекладає NSIS
+  multiLanguageInstaller: true
+  displayLanguageSelector: true
+  installerLanguages:
+    - uk_UA
+    - en_US
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/installerSidebar.bmp
+  runAfterFinish: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
   artifactName: MortarTablet-Setup-${version}.${ext}
 portable:
   artifactName: MortarTablet-${version}-portable.${ext}

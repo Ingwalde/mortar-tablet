@@ -1,7 +1,7 @@
-import { app } from "electron";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { dataRoot } from "../dataRoot";
 import { encodeHeightGrid, parseHeightJson } from "../../core/heightGrid";
 // Висоти, яких нема в каталозі GeNeFRAG, але які зібрано з файлів модів і поставляються разом із застосунком
 // (scripts/extract-badorb-heights.mjs). Імпорт ?asset копіює файл у out/main і дає шлях до нього.
@@ -22,7 +22,7 @@ const BUNDLED: Record<string, string> = {
 };
 
 export function heightsPath(terrainId: string): string {
-  return join(app.getPath("userData"), "heights", `${terrainId}.bin`);
+  return join(dataRoot(), "heights", `${terrainId}.bin`);
 }
 
 /** Завантажує height_data (JSON) і зберігає компактним бінарним файлом для швидкого читання. */
@@ -33,7 +33,7 @@ export async function convertHeightData(terrainId: string, url: string): Promise
   const grid = parseHeightJson(raw);
 
   const path = heightsPath(terrainId);
-  await mkdir(join(app.getPath("userData"), "heights"), { recursive: true });
+  await mkdir(join(dataRoot(), "heights"), { recursive: true });
   await writeFile(path, Buffer.from(encodeHeightGrid(grid)));
 
   return { rows: grid.rows, cols: grid.cols };

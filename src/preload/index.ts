@@ -82,7 +82,11 @@ const api = {
   },
   storage: {
     list: (): Promise<StorageEntry[]> => ipcRenderer.invoke("storage:list"),
-    remove: (terrainId: string, kind: "tiles" | "map" | "heights"): Promise<void> => ipcRenderer.invoke("storage:remove", terrainId, kind)
+    remove: (terrainId: string, kind: "tiles" | "map" | "heights"): Promise<void> => ipcRenderer.invoke("storage:remove", terrainId, kind),
+    root: (): Promise<{ path: string; defaultPath: string; isDefault: boolean }> => ipcRenderer.invoke("storage:root"),
+    chooseRoot: (): Promise<string | null> => ipcRenderer.invoke("storage:chooseRoot"),
+    /** null — повернутися до типової папки; шлях має бути щойно вибраний через `chooseRoot`. */
+    moveRoot: (target: string | null): Promise<{ moved: boolean }> => ipcRenderer.invoke("storage:moveRoot", target)
   },
   heights: {
     importFromUrl: (terrainId: string, url: string): Promise<{ rows: number; cols: number }> =>

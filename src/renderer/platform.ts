@@ -102,7 +102,13 @@ function createStandaloneApi(): MortarApi {
       cancelPrefetch: async () => undefined,
       onPrefetchProgress: () => () => undefined
     },
-    storage: { list: async () => [], remove: async () => undefined },
+    storage: {
+      list: async () => [],
+      remove: async () => undefined,
+      root: async () => ({ path: "", defaultPath: "", isDefault: true }),
+      chooseRoot: async () => null,
+      moveRoot: async () => ({ moved: false })
+    },
     versions: { node: "", chrome: "", electron: "" }
   };
 }

@@ -99,8 +99,52 @@ export function initStoragePanel(hooks: Hooks): void {
     total.textContent = t("storageTotal", { size: fmtSize(sum) });
   }
 
+  const rootPath = $("storageRootPath");
+  const rootMsg = $("storageRootMsg");
+  const rootChange = $<HTMLButtonElement>("storageRootChange");
+  const rootReset = $<HTMLButtonElement>("storageRootReset");
+
+  async function refreshRoot(): Promise<void> {
+    const r = await window.api.storage.root();
+    rootPath.textContent = r.path;
+    rootReset.hidden = r.isDefault;
+  }
+
+  /** Переносить дані в нову папку (target) або повертає типову (null); поки йде копіювання, кнопки вимкнені. */
+  async function moveTo(target: string | null): Promise<void> {
+    rootChange.disabled = rootReset.disabled = true;
+    rootMsg.textContent = t("storageRootMoving");
+    try {
+      await window.api.storage.moveRoot(target);
+      rootMsg.textContent = t("storageRootMoved");
+    } catch (err) {
+      rootMsg.textContent = String((err as Error).message ?? err);
+    } finally {
+      rootChange.disabled = rootReset.disabled = false;
+    }
+    await refreshRoot();
+    await refresh();
+  }
+
+  rootChange.onclick = () => {
+    void (async () => {
+      const picked = await window.api.storage.chooseRoot();
+      if (!picked) return;
+      const ok = await ask(t("storageRootTitle"), t("storageRootText", { path: picked }), t("storageRootGo"));
+      if (ok) await moveTo(picked);
+    })();
+  };
+  rootReset.onclick = () => {
+    void (async () => {
+      const ok = await ask(t("storageRootTitle"), t("storageRootTextDefault"), t("storageRootGo"));
+      if (ok) await moveTo(null);
+    })();
+  };
+
   $<HTMLButtonElement>("storageOpen").onclick = () => {
     dlg.showModal();
+    rootMsg.textContent = "";
+    void refreshRoot();
     void refresh();
   };
   $<HTMLButtonElement>("storageRefresh").onclick = () => void refresh();

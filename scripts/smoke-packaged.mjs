@@ -3,7 +3,7 @@
 // Ловить клас помилок «збірка не стартує» (як було з імпортом electron-updater) ще до релізу.
 //   node scripts/smoke-packaged.mjs [шлях до exe]      (типово dist/win-unpacked/Планшет мінометника.exe)
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtempSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +28,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const debugPort = await freePort();
 const dir = mkdtempSync(join(tmpdir(), "mortar-smoke-"));
+// папка даних, вказана інсталятором: data-dir.txt у UTF-16 з BOM (як його пише NSIS), шлях із кирилицею
+const customRoot = mkdtempSync(join(tmpdir(), "mortar-карти-"));
+mkdirSync(join(customRoot, "tiles", "smoke", "0", "0"), { recursive: true });
+writeFileSync(join(customRoot, "tiles", "smoke", "0", "0", "0.jpg"), "x");
+writeFileSync(join(dir, "data-dir.txt"), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(customRoot + "\r\n", "utf16le")]));
 const child = spawn(exe, [`--user-data-dir=${dir}`, `--remote-debugging-port=${debugPort}`], { stdio: "ignore", windowsHide: true });
 let failed = 0;
 const check = (ok, what) => {
@@ -115,6 +120,21 @@ try {
     "window.api.heights.read('bystrany').then((b) => (b ? { len: b.length, first: new DataView(b.buffer, b.byteOffset).getInt32(0, true) } : null))"
   );
   check(!!heights && heights.len > 1_000_000 && heights.first > 100, "вбудовані висоти (стиснені) розпаковуються");
+  // папка даних із data-dir.txt (як від інсталятора) діє, а «Типова папка» переносить дані назад
+  const root = await page.evaluate("window.api.storage.root()");
+  check(root.path === customRoot && !root.isDefault, "папка даних береться з data-dir.txt (UTF-16, кирилиця)");
+  // діалог «Завантажені дані» показує цю папку й кнопки керування
+  await page.evaluate("document.getElementById('storageOpen').click()");
+  await sleep(600);
+  const shown = await page.evaluate("document.getElementById('storageRootPath').textContent");
+  check(shown === customRoot && (await page.evaluate("!document.getElementById('storageRootReset').hidden")), "діалог даних показує папку й кнопку «Типова папка»");
+  await page.evaluate("document.getElementById('storageDlg').close()");
+  const listed = await page.evaluate("window.api.storage.list().then((l) => l.map((e) => e.id))");
+  check(listed.includes("smoke"), "менеджер даних бачить файли в тій папці");
+  const moved = await page.evaluate("window.api.storage.moveRoot(null)");
+  check(moved.moved === true && existsSync(join(dir, "tiles", "smoke", "0", "0", "0.jpg")) && !existsSync(join(customRoot, "tiles")), "перенесення в типову папку: файли на місці, стара папка очищена");
+  check((await page.evaluate("window.api.storage.root()")).isDefault === true, "після перенесення папка даних типова");
+  check(!existsSync(join(dir, "data-dir.txt")), "файл data-dir.txt прибрано");
   page.close();
 
   // 2. запобіжники Electron у зібраному exe

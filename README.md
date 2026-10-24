@@ -37,7 +37,7 @@ Ready-made builds are on the [releases page](https://github.com/Ingwalde/mortar-
 
 The Windows and macOS builds are not code-signed: Windows SmartScreen asks for confirmation ("More info" → "Run anyway"), and on macOS you open
 the app with right-click → "Open". macOS cannot update an unsigned app by itself, which is why it only reports new versions.
-Download files only from this repository's releases. The web version has a separate "Download the app" button at the top that opens this page.
+Download files only from this repository's releases. The Windows installer asks for the language (Ukrainian or English), installs for the current user without administrator rights and lets you choose the program folder and the folder for downloaded maps. The web version has a separate "Download the app" button at the top that opens this page.
 
 ## Development
 
@@ -85,6 +85,8 @@ npm run build:web   # the standalone web version (PWA) -> out/web
 
 On the PC the cloud button in the header ("Offline mode") saves the online tiles of Everon, Arland and Kolguyev to disk, so the map works without internet.
 Imported maps are already on disk.
+
+**Where the files go.** Downloaded tiles, imported maps and heights can take several gigabytes. The Windows installer asks for a folder for them (the default is the app's data folder), and later it can be changed in Settings → "Maps and data" → "Open manager" → "Change folder…": the files are moved to the new folder. The choice is kept in `data-dir.txt` in the app's data folder; marks and the log always stay there.
 
 ## Standalone version (no PC)
 

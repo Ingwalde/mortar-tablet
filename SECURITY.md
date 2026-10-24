@@ -20,7 +20,8 @@ We trust the operating system and the user; we do not trust content that comes f
 - terrain identifiers are only `[A-Za-z0-9_-]{1,64}`, map sizes are within sensible limits;
 - a map file is accepted only if the user has just chosen it in the system dialog (the renderer cannot make the main process
   read an arbitrary file);
-- images and heights are downloaded only from a URL in the terrain catalogue, only over `https`, with a size limit (4 GB).
+- images and heights are downloaded only from a URL in the terrain catalogue, only over `https`, with a size limit (4 GB);
+- the folder for downloaded data is accepted only if the user has just chosen it in the system dialog; moving the data is refused while a download or an import runs, refuses a folder inside the current one, and removes the old files only after everything has been copied. The choice is stored in `data-dir.txt`, which is read as a plain absolute path (relative or malformed content is ignored).
 
 ## Standalone version and Android
 

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { findPreset } from "../core/terrains";
 import { bundledMap } from "../core/bundledMaps";
 import { tileUrl } from "../core/onlineTiles";
+import { dataRoot } from "./dataRoot";
 
 /** Викликати ДО app.whenReady() — реєструє схеми як привілейовані (fetch/CORS з рендерера). */
 export function registerPrivilegedSchemes(): void {
@@ -15,11 +16,11 @@ export function registerPrivilegedSchemes(): void {
 }
 
 function tileCacheDir(terrainId: string): string {
-  return join(app.getPath("userData"), "tiles", terrainId);
+  return join(dataRoot(), "tiles", terrainId);
 }
 
 export function pyramidDir(terrainId: string): string {
-  return join(app.getPath("userData"), "maps", terrainId);
+  return join(dataRoot(), "maps", terrainId);
 }
 
 /** Онлайн-тайл reforger.recoil.org з дисковим кешем; null — нема такого тайла чи мережа недоступна. */

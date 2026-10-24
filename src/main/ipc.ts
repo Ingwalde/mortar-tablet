@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { randomUUID } from "node:crypto";
-import { rm } from "node:fs/promises";
+import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadStore, saveStore } from "./store";
 import { buildTilePyramid, ImportCancelledError, type ImportProgress } from "./tiles/import";
@@ -19,6 +19,8 @@ import {
 } from "./security";
 import { findPreset } from "../core/terrains";
 import { onlineTileList } from "../core/onlineTiles";
+import { isAbsolutePath, isSameOrInside } from "../core/dataRoot";
+import { dataRoot, defaultDataRoot, setDataRoot } from "./dataRoot";
 
 /** Лише один імпорт карти одночасно — так само, як в UI прототипу (один прогрес-бар). */
 let currentImport: AbortController | null = null;
@@ -131,6 +133,43 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     if (!isSafeId(terrainId)) throw new Error("Некоректний терен");
     await rm(pyramidDir(terrainId), { recursive: true, force: true });
     await rm(heightsPath(terrainId), { force: true });
+  });
+
+  // папка завантажених даних: показати, вибрати (системний діалог) і перенести туди наявні дані
+  let approvedRoot: string | null = null;
+  ipcMain.handle("storage:root", () => ({ path: dataRoot(), defaultPath: defaultDataRoot(), isDefault: dataRoot() === defaultDataRoot() }));
+  ipcMain.handle("storage:chooseRoot", async () => {
+    const win = getWindow();
+    const res = await dialog.showOpenDialog(win ?? undefined!, {
+      title: "Виберіть папку для завантажених карт і даних",
+      properties: ["openDirectory", "createDirectory"]
+    });
+    if (res.canceled || !res.filePaths[0]) return null;
+    // лише цю папку main потім прийме (рендерер не може підсунути довільний шлях)
+    approvedRoot = res.filePaths[0];
+    return approvedRoot;
+  });
+  ipcMain.handle("storage:moveRoot", async (_e, target: string | null) => {
+    if (currentImport || prefetch) throw new Error("Спершу дочекайтеся завершення завантаження або імпорту карти");
+    const from = dataRoot();
+    const to = target === null ? defaultDataRoot() : target;
+    if (target !== null && (target !== approvedRoot || !isAbsolutePath(target))) throw new Error("Папку не вибрано через діалог");
+    approvedRoot = null;
+    if (isSameOrInside(from, to) && isSameOrInside(to, from)) return { moved: false };
+    if (isSameOrInside(from, to)) throw new Error("Нова папка не може лежати всередині теперішньої");
+    await mkdir(to, { recursive: true });
+    // перевірка запису: диск може бути лише для читання
+    const probe = join(to, ".write-test");
+    await writeFile(probe, "x");
+    await rm(probe, { force: true });
+    for (const kind of ["tiles", "maps", "heights"]) {
+      const src = join(from, kind);
+      if (await stat(src).then((s) => s.isDirectory()).catch(() => false)) await cp(src, join(to, kind), { recursive: true, force: false, errorOnExist: false });
+    }
+    // усе скопійовано: запам'ятовуємо нову папку й лише потім прибираємо стару
+    setDataRoot(target);
+    for (const kind of ["tiles", "maps", "heights"]) await rm(join(from, kind), { recursive: true, force: true }).catch(() => undefined);
+    return { moved: true };
   });
 
   // менеджер завантажених даних: список із розмірами й видалення за видом (id і вид перевіряються)

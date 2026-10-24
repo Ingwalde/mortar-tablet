@@ -365,6 +365,15 @@ html.no-splash #splash{display:none}
 </dialog>
 <dialog id="storageDlg">
   <h3 data-i18n="storageTitle">Завантажені дані</h3>
+  <div class="storage-root">
+    <div class="k" data-i18n="storageRootLabel">Папка даних</div>
+    <div class="storage-path" id="storageRootPath"></div>
+    <div class="row">
+      <button type="button" class="btn small" id="storageRootChange" data-i18n="storageRootChange">Змінити папку…</button>
+      <button type="button" class="btn small" id="storageRootReset" data-i18n="storageRootReset">Типова папка</button>
+    </div>
+    <p class="hint small" id="storageRootMsg"></p>
+  </div>
   <div id="storageList" class="storage-list"></div>
   <p class="hint" id="storageTotal"></p>
   <div class="dlg-actions">

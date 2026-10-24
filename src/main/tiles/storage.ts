@@ -2,10 +2,10 @@
  * Менеджер завантажених даних на ПК: що лежить у папці даних (кеш онлайн-тайлів, імпортовані карти, висоти) і скільки місця займає.
  * Видалення працює лише з відомими видами даних і безпечними id терену.
  */
-import { app } from "electron";
 import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { isSafeId } from "../security";
+import { dataRoot } from "../dataRoot";
 import { heightsPath } from "./heights";
 
 export type StorageKind = "tiles" | "map" | "heights";
@@ -57,7 +57,7 @@ export async function dirSize(dir: string): Promise<DirSize> {
 }
 
 function dataDir(kind: "tiles" | "maps", id: string): string {
-  return join(app.getPath("userData"), kind, id);
+  return join(dataRoot(), kind, id);
 }
 
 async function subdirNames(root: string): Promise<string[]> {
@@ -69,7 +69,7 @@ async function subdirNames(root: string): Promise<string[]> {
 }
 
 export async function listStorage(): Promise<StorageEntry[]> {
-  const userData = app.getPath("userData");
+  const userData = dataRoot();
   const ids = new Set<string>([...(await subdirNames(join(userData, "tiles"))), ...(await subdirNames(join(userData, "maps")))]);
   try {
     for (const f of await readdir(join(userData, "heights"))) {
