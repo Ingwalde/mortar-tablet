@@ -1097,13 +1097,13 @@ function destroyedShapes(): DestroyedShape[] {
 
 const AIM_SNAP_TAP_M = 1.5;
 
-/** Будівля під прицілом (центр екрана всередині контуру); null — прицілу нічого прив'язувати. polys — вона разом з прибудовами, що торкаються її. */
-export function aimBuilding(): { cx: number; cz: number; pts: Float32Array; polys: Float32Array[] } | null {
+/** Будівля під прицілом (центр екрана всередині контуру); null — прицілу нічого прив'язувати. */
+export function aimBuilding(): { cx: number; cz: number; pts: Float32Array } | null {
   const idx = buildingIndexFor(currentMeta().id);
   if (!idx) return null;
   const w = centerWorld();
   const b = idx.findAt(w.x, w.z, 0.5);
-  return b ? { cx: b.cx, cz: b.cz, pts: b.pts, polys: idx.clusterOf(b).map((c) => c.pts) } : null;
+  return b ? { cx: b.cx, cz: b.cz, pts: b.pts } : null;
 }
 
 /** Тонка підсвітка будівлі під прицілом: видно, що мітка стане в її центр. */
@@ -1114,16 +1114,14 @@ function drawAimBuilding(c: Record<string, string>): void {
   let maxX = -Infinity;
   ctx.save();
   ctx.beginPath();
-  for (const pts of b.polys) {
-    for (let i = 0; i < pts.length; i += 2) {
-      const p = scrFromWorld(pts[i], pts[i + 1]);
-      minX = Math.min(minX, p.sx);
-      maxX = Math.max(maxX, p.sx);
-      if (i === 0) ctx.moveTo(p.sx, p.sy);
-      else ctx.lineTo(p.sx, p.sy);
-    }
-    ctx.closePath();
+  for (let i = 0; i < b.pts.length; i += 2) {
+    const p = scrFromWorld(b.pts[i], b.pts[i + 1]);
+    minX = Math.min(minX, p.sx);
+    maxX = Math.max(maxX, p.sx);
+    if (i === 0) ctx.moveTo(p.sx, p.sy);
+    else ctx.lineTo(p.sx, p.sy);
   }
+  ctx.closePath();
   if (maxX - minX >= 6) {
     ctx.globalAlpha = 0.16;
     ctx.fillStyle = c.accent;
