@@ -88,6 +88,10 @@ export function initUpdater(): void {
     // оновлення завантажене: помітна смужка з кнопкою, бо інакше воно чекає виходу з програми й залишається непоміченим
     if (s.state === "ready" && was !== "ready") showBanner(t("updReady", { v: s.version ?? "" }), t("updInstallBtn"), () => void window.api.updater.install());
     // macOS і .deb: самі не оновлюємось, тож один раз сповіщаємо про нову версію
-    if (s.state === "manual" && was !== "manual") toast(t("updManual", { v: s.version ?? "" }));
+    if (s.state === "manual" && was !== "manual") {
+      const url = (s as { url?: string }).url;
+      if (url) showBanner(t("updManual", { v: s.version ?? "" }), t("updOpenPage"), () => window.open(url, "_blank", "noopener"));
+      else toast(t("updManual", { v: s.version ?? "" }));
+    }
   });
 }
