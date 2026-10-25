@@ -182,6 +182,7 @@ function rectOf(pts) {
 }
 const inRect = (r, x, z, grow = 0) => { const s = (x - r.c[0]) * r.u[0] + (z - r.c[1]) * r.u[1], t = (x - r.c[0]) * r.v[0] + (z - r.c[1]) * r.v[1]; return Math.abs(s) <= r.a + grow && Math.abs(t) <= r.b + grow; };
 
+const DE_EDGE = Number(process.env.DE_EDGE ?? 6), CONTRAST_MIN = Number(process.env.CONTRAST_MIN ?? 0.55);
 const RES = 0.25; // м на клітинку сітки сегментації
 const M = 4; // запас навколо прямокутника, м
 function segment(r, neigh) {
@@ -337,7 +338,7 @@ function edgeContrast(poly, others) {
       const li = labAt(x - nx * 0.7, z - nz * 0.7), lo = labAt(x + nx * 0.7, z + nz * 0.7);
       if (!li || !lo) continue;
       tot++;
-      if (dE(li, lo) > 8) good++;
+      if (dE(li, lo) > DE_EDGE) good++;
     }
   }
   return tot >= 4 ? good / tot : 0;
@@ -365,7 +366,7 @@ function refineOne(pts, r, neigh) {
   if (ratio < 0.38 || ratio > 1.6) return { pts, status: "area" };
   const close = neigh.filter((n) => Math.hypot(n.rect.c[0] - r.c[0], n.rect.c[1] - r.c[1]) < r.a + r.b + n.rect.a + n.rect.b + 6).map((n) => n.rect);
   const contrast = edgeContrast(res, close);
-  if (contrast < 0.6) return { pts, status: "contrast", dbg: `new ${contrast.toFixed(2)} ratio ${ratio.toFixed(2)}` };
+  if (contrast < CONTRAST_MIN) return { pts, status: "contrast", dbg: `new ${contrast.toFixed(2)} ratio ${ratio.toFixed(2)}` };
   // прямокутник з .topo, що вже збігається з виявленим дахом (перетин/об'єднання), не чіпаємо
   let inter = 0, nm = 0, nown = 0;
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {

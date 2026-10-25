@@ -669,3 +669,4 @@ html.framed #titlebar .ttl{font-size:12.5px;font-weight:600;color:var(--muted);l
 html.framed.tb-win32 #titlebar,html.framed.tb-linux #titlebar{padding-right:150px}
 html.framed.tb-darwin #titlebar{padding-left:84px}
 html.framed .app{top:36px}
+html.framed .upd{top:46px}

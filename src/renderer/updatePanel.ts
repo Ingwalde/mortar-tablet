@@ -1,6 +1,7 @@
 import { toast } from "./dom";
 import { t } from "./i18n";
 import { isRemote } from "./platform";
+import { showBanner } from "./webUpdate";
 
 type Status = { state: string; version?: string; percent?: number; message?: string; url?: string };
 
@@ -75,11 +76,17 @@ export function mountUpdateBox(container: Element): void {
 
 export function initUpdater(): void {
   if (isRemote) return;
+  // оновлення могло завантажитися ще до відкриття вікна
+  void window.api.updater.status().then((s) => {
+    if (s.state === "ready" && last.state !== "ready") showBanner(t("updReady", { v: s.version ?? "" }), t("updInstallBtn"), () => void window.api.updater.install());
+    last = s;
+  });
   window.api.updater.onStatus((s) => {
     const was = last.state;
     last = s;
     paint();
-    if (s.state === "ready" && was !== "ready") toast(t("updReady", { v: s.version ?? "" }));
+    // оновлення завантажене: помітна смужка з кнопкою, бо інакше воно чекає виходу з програми й залишається непоміченим
+    if (s.state === "ready" && was !== "ready") showBanner(t("updReady", { v: s.version ?? "" }), t("updInstallBtn"), () => void window.api.updater.install());
     // macOS і .deb: самі не оновлюємось, тож один раз сповіщаємо про нову версію
     if (s.state === "manual" && was !== "manual") toast(t("updManual", { v: s.version ?? "" }));
   });
