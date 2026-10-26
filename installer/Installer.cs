@@ -667,6 +667,7 @@ class SetupForm : Form
     static readonly string[][] T = new string[][] {
         new string[] { "title", "Планшет мінометника", "Mortar Tablet" },
         new string[] { "setup", "Встановлення", "Install" },
+        new string[] { "setupUp", "Оновлення", "Update" },
         new string[] { "version", "Версія {0}", "Version {0}" },
         new string[] { "appDir", "Папка програми", "Program folder" },
         new string[] { "mapsDir", "Папка для карт і даних", "Folder for maps and data" },
@@ -680,19 +681,28 @@ class SetupForm : Form
         new string[] { "cancel", "Скасувати", "Cancel" },
         new string[] { "browse", "Обрати…", "Browse…" },
         new string[] { "progress", "Встановлення…", "Installing…" },
+        new string[] { "progressUp", "Оновлення…", "Updating…" },
         new string[] { "prep", "Підготовка файлів…", "Preparing the files…" },
         new string[] { "copy", "Копіювання файлів…", "Copying the files…" },
         new string[] { "finishing", "Завершення…", "Finishing…" },
         new string[] { "done", "Готово", "Done" },
         new string[] { "doneText", "Планшет мінометника встановлено.", "Mortar Tablet is installed." },
+        new string[] { "doneTextUp", "Планшет мінометника оновлено.", "Mortar Tablet is updated." },
         new string[] { "launch", "Запустити Планшет мінометника", "Launch Mortar Tablet" },
         new string[] { "close", "Закрити", "Close" },
         new string[] { "err", "Не вдалося встановити", "Installation failed" },
+        new string[] { "errUp", "Не вдалося оновити", "Update failed" },
         new string[] { "errText", "Код помилки {0}. Закрийте Планшет мінометника, якщо він запущений, і спробуйте ще раз.", "Error code {0}. Close Mortar Tablet if it is running and try again." },
         new string[] { "badDir", "Вкажіть повний шлях до папки (наприклад, D:\\Programs).", "Enter a full folder path (for example D:\\Programs)." },
         new string[] { "cancelAsk", "Перервати установку?", "Cancel the installation?" },
         new string[] { "previewNote", "Перегляд вигляду: нічого не встановлюється", "Preview: nothing is installed" }
     };
+
+    /// <summary>Підпис для установки або, якщо програма вже стоїть, для оновлення: base чи base + "Up".</summary>
+    string LU(string key)
+    {
+        return L(existing != null ? key + "Up" : key);
+    }
 
     string L(string key)
     {
@@ -716,7 +726,7 @@ class SetupForm : Form
         Stream es = Assembly.GetExecutingAssembly().GetManifestResourceStream("emblem.png");
         emblem = es == null ? null : new Bitmap(es);
 
-        Text = L("title") + " " + L("setup");
+        Text = L("title") + " " + LU("setup");
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(W, H);
@@ -835,7 +845,7 @@ class SetupForm : Form
 
     void ApplyTexts()
     {
-        Text = L("title") + " " + L("setup");
+        Text = L("title") + " " + LU("setup");
         hAppDir.Text = L("appDir");
         hMapsDir.Text = L("mapsDir");
         hMapsHint.Text = mapsLocked ? L("mapsLocked") : L("mapsHint");
@@ -848,7 +858,7 @@ class SetupForm : Form
         progStatus.Text = progStatus.Tag as string == null ? L("prep") : L((string)progStatus.Tag);
         launch.Text = L("launch");
         finish.Text = L("close");
-        if (page == Page.Done) doneText.Text = L("doneText");
+        if (page == Page.Done) doneText.Text = LU("doneText");
         if (page == Page.Error) doneText.Text = string.Format(L("errText"), exitCode);
         Invalidate();
     }
@@ -927,18 +937,18 @@ class SetupForm : Form
         {
             DrawEmblem(g, new Rectangle(Gfx.P(40), Gfx.P(36), Gfx.P(64), Gfx.P(64)));
             TextRenderer.DrawText(g, L("title"), head, new Point(Gfx.P(118), Gfx.P(38)), Colors.Ink);
-            TextRenderer.DrawText(g, L("setup") + "  ·  " + string.Format(L("version"), version), sub, new Point(Gfx.P(121), Gfx.P(80)), Colors.Muted);
+            TextRenderer.DrawText(g, LU("setup") + "  ·  " + string.Format(L("version"), version), sub, new Point(Gfx.P(121), Gfx.P(80)), Colors.Muted);
             if (preview) TextRenderer.DrawText(g, L("previewNote"), new Font("Segoe UI", 8.5f), new Point(Gfx.P(121), Gfx.P(104)), Colors.Warn);
         }
         else if (page == Page.Progress)
         {
-            TextRenderer.DrawText(g, L("progress"), head, new Rectangle(0, Gfx.P(196), W, Gfx.P(44)), Colors.Ink, TextFormatFlags.HorizontalCenter);
+            TextRenderer.DrawText(g, LU("progress"), head, new Rectangle(0, Gfx.P(196), W, Gfx.P(44)), Colors.Ink, TextFormatFlags.HorizontalCenter);
         }
         else
         {
             bool ok = page == Page.Done;
             DrawEmblem(g, new Rectangle(W / 2 - Gfx.P(40), Gfx.P(50), Gfx.P(80), Gfx.P(80)));
-            TextRenderer.DrawText(g, ok ? L("done") : L("err"), head, new Rectangle(0, Gfx.P(140), W, Gfx.P(44)), ok ? Colors.Accent : Colors.Warn, TextFormatFlags.HorizontalCenter);
+            TextRenderer.DrawText(g, ok ? L("done") : LU("err"), head, new Rectangle(0, Gfx.P(140), W, Gfx.P(44)), ok ? Colors.Accent : Colors.Warn, TextFormatFlags.HorizontalCenter);
             doneText.TextAlign = ContentAlignment.TopCenter;
         }
     }

@@ -28,7 +28,7 @@ function lsSet(key: string, value: string): void {
   }
 }
 
-function showBanner(text: string, actionLabel: string, onAction: () => void, onClose?: () => void): void {
+export function showBanner(text: string, actionLabel: string, onAction: () => void, onClose?: () => void): void {
   document.getElementById("updateBanner")?.remove();
   const box = document.createElement("div");
   box.id = "updateBanner";

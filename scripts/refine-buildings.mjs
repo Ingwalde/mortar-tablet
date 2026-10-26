@@ -182,6 +182,7 @@ function rectOf(pts) {
 }
 const inRect = (r, x, z, grow = 0) => { const s = (x - r.c[0]) * r.u[0] + (z - r.c[1]) * r.u[1], t = (x - r.c[0]) * r.v[0] + (z - r.c[1]) * r.v[1]; return Math.abs(s) <= r.a + grow && Math.abs(t) <= r.b + grow; };
 
+const DE_EDGE = Number(process.env.DE_EDGE ?? 6), CONTRAST_MIN = Number(process.env.CONTRAST_MIN ?? 0.55);
 const RES = 0.25; // м на клітинку сітки сегментації
 const M = 4; // запас навколо прямокутника, м
 function segment(r, neigh) {
@@ -317,6 +318,14 @@ function rectSimplify(loop, minLen) {
   }
   return P;
 }
+function convexHull(pts) {
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of [...p].reverse()) { while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
 const areaOf = (p) => { let s = 0; for (let i = 0; i < p.length; i++) { const q = p[(i + 1) % p.length]; s += p[i][0] * q[1] - q[0] * p[i][1]; } return Math.abs(s) / 2; };
 
 /** Частка точок контуру, де колір просто всередині помітно відрізняється від кольору просто зовні (справжній край даху). */
@@ -337,7 +346,7 @@ function edgeContrast(poly, others) {
       const li = labAt(x - nx * 0.7, z - nz * 0.7), lo = labAt(x + nx * 0.7, z + nz * 0.7);
       if (!li || !lo) continue;
       tot++;
-      if (dE(li, lo) > 8) good++;
+      if (dE(li, lo) > DE_EDGE) good++;
     }
   }
   return tot >= 4 ? good / tot : 0;
@@ -358,14 +367,16 @@ function refineOne(pts, r, neigh) {
   m = fillHoles(m, nx, nz);
   const loop = traceOuter(m, nx, nz);
   if (!loop || loop.length < 8) return { pts, status: "no-contour" };
-  const poly = rectSimplify(loop, 4);
+  // зубчастий дах (тіні, дерева по краю) спрощуємо грубіше, доки вершин не стане розумно мало
+  let poly = rectSimplify(loop, 4);
+  for (const minLen of [6, 8, 12]) if (poly.length > 16) poly = rectSimplify(loop, minLen);
   if (poly.length < 3 || poly.length > 64) return { pts, status: "degenerate" };
   const res = poly.map(([i, j]) => { const s = -r.a - M + i * RES, t = -r.b - M + j * RES; return [r.c[0] + s * r.u[0] + t * r.v[0], r.c[1] + s * r.u[1] + t * r.v[1]]; });
   const ratio = areaOf(res) / areaOf(pts);
   if (ratio < 0.38 || ratio > 1.6) return { pts, status: "area" };
   const close = neigh.filter((n) => Math.hypot(n.rect.c[0] - r.c[0], n.rect.c[1] - r.c[1]) < r.a + r.b + n.rect.a + n.rect.b + 6).map((n) => n.rect);
   const contrast = edgeContrast(res, close);
-  if (contrast < 0.6) return { pts, status: "contrast", dbg: `new ${contrast.toFixed(2)} ratio ${ratio.toFixed(2)}` };
+  if (contrast < CONTRAST_MIN) return { pts, status: "contrast", dbg: `new ${contrast.toFixed(2)} ratio ${ratio.toFixed(2)}` };
   // прямокутник з .topo, що вже збігається з виявленим дахом (перетин/об'єднання), не чіпаємо
   let inter = 0, nm = 0, nown = 0;
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -375,8 +386,14 @@ function refineOne(pts, r, neigh) {
     if (m[j * nx + i]) { nm++; if (own) inter++; }
   }
   const iou = inter / (nm + nown - inter);
-  if (iou > 0.86) return { pts, status: "fits", dbg: `iou ${iou.toFixed(2)}` };
-  return { pts: res, status: "ok", dbg: `iou ${iou.toFixed(2)}` };
+  if (iou > 0.86) return { pts, status: "fits", iou, dbg: `iou ${iou.toFixed(2)}` };
+  // сильно менший за початковий прямокутник і майже не накладається на нього — найчастіше сегментація зачепила лише частину даху (тінь, інший колір скату)
+  if (iou < 0.5 && ratio < 0.8) return { pts, status: "partial", iou, dbg: `iou ${iou.toFixed(2)} r${ratio.toFixed(2)}` };
+  // випуклий і лише менший за початковий прямокутник: це просто «менший прямокутник» без форми Г чи Т — неоднозначно, тож лишаємо початковий
+  if (ratio < 0.85 && iou < 0.75 && areaOf(res) > 0.97 * areaOf(convexHull(res))) return { pts, status: "shrunk", iou, dbg: `iou ${iou.toFixed(2)} r${ratio.toFixed(2)}` };
+  // зубчастий контур (десятки сходинок) — тіні й дерева по краю, а не форма даху
+  if (res.length > 16) return { pts, status: "jagged", iou, dbg: `iou ${iou.toFixed(2)} n${res.length}` };
+  return { pts: res, status: "ok", iou, dbg: `iou ${iou.toFixed(2)} r${ratio.toFixed(2)}` };
 }
 
 // ---------- основний цикл ----------
@@ -475,6 +492,60 @@ if (preview) {
     if (it.res.status === "ok") svg += `<polygon points="${it.res.pts.map((q) => `${X(q[0])},${Z(q[1])}`).join(" ")}" fill="none" stroke="#3dff9a" stroke-width="2.2"/>`;
   }
   await sharp(buf, { raw: { width: w, height: h, channels: 3 } }).composite([{ input: Buffer.from(svg + "</svg>") }]).png().toFile(png);
+  process.exit(0);
+}
+
+
+/** Огляд усіх будівель: листи мініатюр (було — малиновий, стало — зелений), згруповані за станом і відсортовані від найпідозрілішого. */
+const auditOpt = opt("--audit");
+if (auditOpt) {
+  const dir = auditOpt[0];
+  mkdirSync(dir, { recursive: true });
+  const S = 176, COLS = 7, ROWS = 5, PER = COLS * ROWS, LAB = 16;
+  const groups = new Map();
+  for (const it of items) {
+    if (!it.res || it.res.status === "tiny") continue;
+    const close = neighbours(it).map((n) => n.rect);
+    it.origContrast = edgeContrast(it.pts, close);
+    const key = it.res.status;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  const summary = {};
+  for (const [key, list] of groups) {
+    // найпідозріліші першими: для змінених — найнижчий IoU, для решти — найгірше прилягання початкового прямокутника
+    if (key === "ok") list.sort((a, b) => a.res.iou - b.res.iou);
+    else list.sort((a, b) => a.origContrast - b.origContrast);
+    summary[key] = list.length;
+    for (let sheet = 0; sheet * PER < list.length; sheet++) {
+      const part = list.slice(sheet * PER, (sheet + 1) * PER);
+      const W = COLS * S, H = ROWS * (S + LAB);
+      const layers = [];
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`;
+      for (let k = 0; k < part.length; k++) {
+        const it = part[k], cxm = (it.x0 + it.x1) / 2, czm = (it.z0 + it.z1) / 2;
+        const win = Math.max(18, Math.max(it.x1 - it.x0, it.z1 - it.z0) + 10), ppm = S / win;
+        await ensure(cxm - win / 2, czm - win / 2, cxm + win / 2, czm + win / 2);
+        const buf = Buffer.alloc(S * S * 3);
+        for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+          const l = source.locate(cxm - win / 2 + x / ppm, czm + win / 2 - y / ppm), t = lruGet(l.key);
+          if (!t) continue;
+          const px = Math.min(l.size - 1, Math.max(0, Math.floor(l.px))), py = Math.min(l.size - 1, Math.max(0, Math.floor(l.py)));
+          const i = (py * l.size + px) * t.channels, o = (y * S + x) * 3;
+          buf[o] = t.raw[i]; buf[o + 1] = t.raw[i + 1]; buf[o + 2] = t.raw[i + 2];
+        }
+        const ox = (k % COLS) * S, oy = Math.floor(k / COLS) * (S + LAB);
+        layers.push({ input: await sharp(buf, { raw: { width: S, height: S, channels: 3 } }).png().toBuffer(), left: ox, top: oy + LAB });
+        const X = (x) => (ox + (x - (cxm - win / 2)) * ppm).toFixed(1), Z = (z) => (oy + LAB + (czm + win / 2 - z) * ppm).toFixed(1);
+        svg += `<polygon points="${it.pts.map((q) => `${X(q[0])},${Z(q[1])}`).join(" ")}" fill="none" stroke="#ff2fd0" stroke-width="1.2"/>`;
+        if (it.res.status === "ok") svg += `<polygon points="${it.res.pts.map((q) => `${X(q[0])},${Z(q[1])}`).join(" ")}" fill="none" stroke="#3dff9a" stroke-width="1.8"/>`;
+        svg += `<text x="${ox + 3}" y="${oy + 12}" font-size="11" font-family="Arial" fill="#fff">#${items.indexOf(it)} ${Math.round(it.rect.c[0])},${Math.round(it.rect.c[1])} ${it.res.dbg ?? ""} o${it.origContrast.toFixed(2)}</text>`;
+      }
+      layers.push({ input: Buffer.from(svg + "</svg>"), left: 0, top: 0 });
+      await sharp({ create: { width: W, height: H, channels: 3, background: "#101010" } }).composite(layers).png().toFile(join(dir, `${key}-${String(sheet + 1).padStart(3, "0")}.png`));
+    }
+  }
+  console.log(JSON.stringify(summary));
   process.exit(0);
 }
 

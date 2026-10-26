@@ -30,14 +30,14 @@ Ready-made builds are on the [releases page](https://github.com/Ingwalde/mortar-
 | Platform | File | Updates |
 | --- | --- | --- |
 | Web / iPhone | [the web version](https://ingwalde.github.io/mortar-tablet/) (add it to the home screen) | automatic |
-| Windows | `MortarTablet-Setup-<version>.exe` (installer) or `MortarTablet-<version>-portable.exe` | the installer updates itself; the portable build does not |
+| Windows | `MortarTablet-Setup-<version>.exe` (installer) or `MortarTablet-<version>-portable.exe` | the installer updates itself (a bar at the top offers "Restart and update" as soon as the new version is downloaded; otherwise it is installed when the app is closed); the portable build does not |
 | macOS | `MortarTablet-<version>-mac-arm64.dmg` (Apple Silicon) or `...-mac-x64.dmg` (Intel) | the app tells you when a new version is out |
 | Linux (x64) | `MortarTablet-<version>-linux-x86_64.AppImage` or `...-linux-amd64.deb` | the AppImage updates itself; for the .deb the app tells you when a new version is out |
 | Android | `MortarTablet-<version>.apk` (the maps are inside, no internet needed) | the app tells you when a new version is out |
 
 The Windows and macOS builds are not code-signed: Windows SmartScreen asks for confirmation ("More info" → "Run anyway"), and on macOS you open
 the app with right-click → "Open". macOS cannot update an unsigned app by itself, which is why it only reports new versions.
-Download files only from this repository's releases. The Windows installer is a small dark window of its own (Ukrainian or English, switched with a slider; the system language is picked by default). It installs for the current user without administrator rights and asks for the program folder and the folder for downloaded maps; if the program is already installed for all users, it updates that installation in place. The web version has a separate "Download the app" button at the top that opens this page.
+Download files only from this repository's releases. The Windows installer is a small dark window of its own (Ukrainian or English, switched with a slider; the system language is picked by default). It installs for the current user without administrator rights and asks for the program folder and the folder for downloaded maps; if the program is already installed for all users, it updates that installation in place. When the program is already installed, the window says "Update" instead of "Install" throughout. The web version has a separate "Download the app" button at the top that opens this page.
 
 ## Development
 
