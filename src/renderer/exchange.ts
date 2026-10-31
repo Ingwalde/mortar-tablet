@@ -251,10 +251,15 @@ export function initExchange(hooks: Hooks): void {
   $<HTMLSelectElement>("exFolder").onchange = refreshExport;
   for (const id of ["exTarget", "exPoint", "exMortar"]) $<HTMLInputElement>(id).onchange = refreshExport;
   $<HTMLButtonElement>("exCopy").onclick = () => void copyToClipboard($<HTMLTextAreaElement>("exText").value, $<HTMLTextAreaElement>("exText"));
+  // стиснення посилання (CompressionStream) може бути недоступним: покажемо повідомлення замість мовчазної помилки
   $<HTMLButtonElement>("exLink").onclick = async () => {
-    await copyToClipboard(await currentShareUrl(), $<HTMLTextAreaElement>("exText"));
+    try {
+      await copyToClipboard(await currentShareUrl(), $<HTMLTextAreaElement>("exText"));
+    } catch {
+      toast(t("shareBad"), 4000);
+    }
   };
-  $<HTMLButtonElement>("exQr").onclick = () => void showQr();
+  $<HTMLButtonElement>("exQr").onclick = () => void showQr().catch(() => toast(t("shareBad"), 4000));
   $<HTMLButtonElement>("exFile").onclick = () => {
     const { text, fileName } = buildText();
     downloadFile(fileName, text);

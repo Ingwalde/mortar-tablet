@@ -620,7 +620,8 @@ export type JoinError = "limit" | "disabled" | "bad_code" | "bad_callsign" | "ca
 /** Створює відділення на поточному терені; створювач — командир. */
 export async function createSquad(callsign: string): Promise<JoinError | null> {
   try {
-    const res = await fetch(RELAY_URL + "/create", { method: "POST", body: JSON.stringify({ callsign, terrain: getRoot().cur }) });
+    // без відповіді довше 15 с вважаємо, що зв'язку нема: кнопка не має висіти вічно
+    const res = await fetch(RELAY_URL + "/create", { method: "POST", body: JSON.stringify({ callsign, terrain: getRoot().cur }), signal: AbortSignal.timeout(15_000) });
     const j = (await res.json()) as { room?: string; code?: string; key?: string; memberId?: string; error?: string };
     if (!res.ok || !j.room || !j.code || !j.key || !j.memberId) {
       return j.error === "bad_callsign" ? "bad_callsign" : j.error === "limit" ? "limit" : j.error === "disabled" ? "disabled" : "network";
@@ -641,9 +642,12 @@ export function joinSquad(invite: Invite, callsign: string): Promise<JoinError |
     let done = false;
     let joined: Session | null = null;
     const sock = new WebSocket(socketUrl(invite.room));
+    // сервер мовчить (з'єднання зависло без помилки): через 15 с здаємось, а не лишаємо вікно «Приєднуюсь…» назавжди
+    const timeout = setTimeout(() => finish("network"), 15_000);
     const finish = (r: JoinError | null): void => {
       if (done) return;
       done = true;
+      clearTimeout(timeout);
       try {
         sock.close();
       } catch {
@@ -656,7 +660,12 @@ export function joinSquad(invite: Invite, callsign: string): Promise<JoinError |
     sock.onclose = () => finish("network");
     sock.onmessage = (e) => {
       if (done || typeof e.data !== "string") return;
-      const m = JSON.parse(e.data) as ServerMsg;
+      let m: ServerMsg;
+      try {
+        m = JSON.parse(e.data) as ServerMsg;
+      } catch {
+        return;
+      }
       if (m.t === "error") return finish(m.code as JoinError);
       if (m.t === "welcome" && m.key) {
         // ключ отримано; чекаємо зліпок, щоб знати карту відділення ще до першої мітки

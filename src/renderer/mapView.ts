@@ -8,7 +8,7 @@ import {
   type Vec2
 } from "@core/geometry";
 import { tileIndexForWorld, tileSpan } from "@core/onlineTiles";
-import { TIER_SCALE, TIER_WEIGHT, type PlaceTier } from "@core/places";
+import { TIER_SCALE, type PlaceTier } from "@core/places";
 import { FrameMonitor } from "@core/frameMonitor";
 import { PYRAMID_TILE_SIZE, planPyramid, type PyramidPlan } from "@core/tilePyramid";
 import { spreadOutline } from "@core/spread";
@@ -379,6 +379,9 @@ function loadTile(url: string, fetchIt = true, quiet = false): HTMLImageElement 
       tileCache.delete(url);
       e = undefined;
     } else {
+      // найновіше використаний — у кінець черги: вилучається найдавніший, а не завжди той самий грубий оглядовий тайл
+      tileCache.delete(url);
+      tileCache.set(url, e);
       return e.img ?? null;
     }
   }
@@ -417,6 +420,7 @@ function loadTile(url: string, fetchIt = true, quiet = false): HTMLImageElement 
   if (tileCache.size > cap) {
     for (const k of tileCache.keys()) {
       if (tileCache.size <= cap * 0.75) break;
+      if (pending.has(k)) continue; // ще вантажиться: не вилучаємо, інакше його запросять удруге
       tileCache.delete(k);
     }
   }
@@ -1387,6 +1391,24 @@ function symbolImage(aff: Affiliation | undefined, kind: MarkKind): HTMLImageEle
   return img.complete && img.naturalWidth > 0 ? img : null;
 }
 
+const MARK_FONT = '600 13px "IBM Plex Sans Condensed",sans-serif';
+const markLabelWidths = new Map<string, number>();
+/** Ширина підпису мітки: вимірюється один раз (шрифт сталий), а не в кожному кадрі для кожної мітки. Шрифт має бути вже встановлений у ctx. */
+function markLabelWidth(label: string): number {
+  let w = markLabelWidths.get(label);
+  if (w === undefined) {
+    if (markLabelWidths.size > 2000) markLabelWidths.clear();
+    w = ctx.measureText(label).width;
+    markLabelWidths.set(label, w);
+  }
+  return w;
+}
+// веб-шрифт підвантажився після першого виміру: старі ширини (запасного шрифту) недійсні
+document.fonts?.addEventListener("loadingdone", () => {
+  markLabelWidths.clear();
+  requestDraw();
+});
+
 function drawMarkers(c: Record<string, string>): void {
   for (const m of getVisibleMarkers()) {
     const s = scrFromWorld(m.x, m.z);
@@ -1418,10 +1440,10 @@ function drawMarkers(c: Record<string, string>): void {
       ctx.arc(s.sx, s.sy, half + 5, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.font = '600 13px "IBM Plex Sans Condensed",sans-serif';
+    ctx.font = MARK_FONT;
     ctx.textBaseline = "middle";
     const label = m.name || (m.kind === "legacy" ? typeLabel(m.type) : kindLabel(m.kind));
-    const tw = ctx.measureText(label).width;
+    const tw = markLabelWidth(label);
     const lx = s.sx + half + 4;
     ctx.fillStyle = c.surface;
     ctx.globalAlpha = 0.85;

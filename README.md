@@ -104,7 +104,7 @@ The mod maps are on the site. Importing your own maps is only possible in the PC
 
 "Export…" on the "Marks" tab offers "Copy link" and "Show QR". The markers are compressed and put into the address fragment
 (`<site>#s=…`), so the server never sees them. A phone points its camera at the QR, the web version opens, and the import is offered automatically (the map is switched if needed).
-A link can also be pasted into the "Import…" field ("Paste from clipboard"). Very large sets do not fit into a QR: then use the link or a file.
+A link can also be pasted into the "Import…" field ("Paste from clipboard"). Very large sets do not fit into a QR: then use the link or a file. One import takes at most 5000 marks (the rest are skipped and counted), coordinates and field lengths are checked, and the saved state is validated on load, so a damaged file or link cannot break the map.
 The format and the checks are in `src/core/shareLink.ts`.
 
 Note for iPhone: a link opens in Safari, while an app added to the home screen has separate storage; in that case copy the link and paste it into "Import…" inside the app.

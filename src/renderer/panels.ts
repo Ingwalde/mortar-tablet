@@ -1,6 +1,7 @@
 import { clampPlacesScale, normalizePlacesLevel } from "@core/places";
 import { fmtM, gridRef, parseGrid, parseGridCorner } from "@core/geometry";
-import { PRESETS, findPreset } from "@core/terrains";
+import { PRESETS } from "@core/terrains";
+import { parseExchange } from "@core/markerExchange";
 import { TABLES, bearing, shellRange, solve, type WeaponId } from "@core/ballistics";
 import { gameRangeSpread, spreadRadii } from "@core/spread";
 import { allowedShells, pickShell } from "@core/settings";
@@ -61,7 +62,7 @@ import { markAuthor, markLocked, markRights, mayUseSolution, memberName, shareLo
 import { initSquadPanel, render as renderSquadPane } from "./squadPanel";
 import { initUpdater, mountUpdateBox } from "./updatePanel";
 import { NOTICES_TEXT } from "./licenses";
-import { ruinedBuildingIcon, targetIcon } from "./icons";
+import { ruinedBuildingIcon } from "./icons";
 import { vibrate as haptic } from "./haptics";
 import { slideIndicator } from "./slider";
 import { beginListRender, initRipple, reducedMotion, rollElement, rollNumbersIn, tweenNumber } from "./motion";
@@ -1272,45 +1273,27 @@ function fixCalibAtCenter(key: "a" | "b"): void {
 }
 
 // ---------- backup ----------
-/** Приналежність, вид і type імпортованої мітки (старі копії без них виводяться зі `type`). */
-function importClass(m: { aff?: unknown; kind?: unknown; type?: unknown }): { type: MarkerType; aff?: Affiliation; kind: MarkKind } {
-  const c = readClass(m);
-  return { type: c.type, ...(c.aff ? { aff: c.aff } : {}), kind: c.kind };
-}
-
 $<HTMLButtonElement>("copyJson").onclick = () => copyText(JSON.stringify({ markers: getCurrent().markers }, null, 1));
 $<HTMLButtonElement>("importJson").onclick = () => {
-  try {
-    const raw = JSON.parse($<HTMLTextAreaElement>("json").value);
-    const arr = Array.isArray(raw.markers) ? raw.markers : Array.isArray(raw) ? raw : null;
-    if (!arr) throw new Error("bad");
-    const S = getCurrent();
-    const ids = new Set(S.markers.map((m) => m.id));
-    let count = 0;
-    for (const m of arr) {
-      if (!m || !isFinite(m.x) || !isFinite(m.z)) continue;
-      const marker: Marker = {
-        id: ids.has(m.id) ? uid() : String(m.id ?? uid()),
-        name: String(m.name ?? "").slice(0, 40),
-        ...importClass(m),
-        x: Number(m.x),
-        z: Number(m.z),
-        h: m.h === null || m.h === undefined || m.h === "" ? null : Number(m.h),
-        w: m.w === "2B14" ? "2B14" : "M252",
-        folder: typeof m.folder === "string" ? m.folder.slice(0, 40) : "",
-        u: Date.now()
-      };
-      S.markers.push(marker);
-      count++;
-    }
-    if (!count) throw new Error("empty");
-    scheduleSave();
-    renderAll();
-    $<HTMLTextAreaElement>("json").value = "";
-    toast(t("importedCount", { n: count }));
-  } catch {
+  // той самий розбір, що й в «Імпорті…» за папкою: межі координат і довжин, ліміт кількості, підпис і «зруйновано» не губляться
+  const pr = parseExchange($<HTMLTextAreaElement>("json").value);
+  if (!pr.ok) {
     toast(t("importedNotMarks"));
+    return;
   }
+  const S = getCurrent();
+  const ids = new Set(S.markers.map((m) => m.id));
+  const now = Date.now();
+  for (const m of pr.markers) {
+    // мітка з уже наявним (або повторним у файлі) id отримує новий — імпорт нічого не перезаписує
+    const id = m.id && !ids.has(m.id) ? m.id : uid();
+    ids.add(id);
+    S.markers.push({ ...m, id, u: now } as Marker);
+  }
+  scheduleSave();
+  renderAll();
+  $<HTMLTextAreaElement>("json").value = "";
+  toast(t("importedCount", { n: pr.markers.length }));
 };
 $<HTMLButtonElement>("wipe").onclick = async () => {
   const S = getCurrent();
