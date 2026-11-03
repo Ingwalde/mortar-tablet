@@ -5,7 +5,9 @@
  */
 import type { Calib, CalibPoint } from "./geometry";
 
-const MAX_SIZE = 1_000_000;
+export const MAX_SIZE = 1_000_000;
+/** Найбільша допустима координата мітки (м); поза нею розрахунок і малювання дають нескінченності. */
+export const MAX_COORD = 1_000_000;
 
 function finite(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;

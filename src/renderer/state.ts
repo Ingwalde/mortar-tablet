@@ -7,7 +7,7 @@ import { clampPlacesScale, normalizePlacesLevel, type PlaceTier } from "@core/pl
 import { webModMap } from "@core/webMirror";
 import { bundledMap } from "@core/bundledMaps";
 import { defaultSpread, normalizeSpread, type SpreadSettings } from "@core/spread";
-import { sanitizeCalib, sanitizeHeightsInfo, sanitizeMapState, sanitizeSel } from "@core/stateGuard";
+import { MAX_COORD, sanitizeCalib, sanitizeHeightsInfo, sanitizeMapState, sanitizeSel } from "@core/stateGuard";
 import { readCaption, readClass, type Affiliation, type LegacyType, type MarkKind } from "@core/marks";
 
 /** Снаряди кожної гармати з таблиць балістики (для налаштувань доступних снарядів). */
@@ -177,6 +177,7 @@ function normalizeMarker(m: unknown): Marker | null {
   if (!m || typeof m !== "object") return null;
   const r = m as Record<string, unknown>;
   if (!isFinite(Number(r.x)) || !isFinite(Number(r.z))) return null;
+  if (Math.abs(Number(r.x)) > MAX_COORD || Math.abs(Number(r.z)) > MAX_COORD) return null;
   const cls = readClass(r);
   const type: MarkerType = cls.type;
   const caption = readCaption(r.caption);

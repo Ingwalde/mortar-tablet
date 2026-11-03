@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Calib } from "./geometry";
-import { sanitizeCalib, sanitizeHeightsInfo, sanitizeMapState, sanitizeSel, type SelectionLike } from "./stateGuard";
+import { MAX_SIZE, sanitizeCalib, sanitizeHeightsInfo, sanitizeMapState, sanitizeSel, type SelectionLike } from "./stateGuard";
 
 const baseCalib: Calib = { mode: "size", size: 12800, sizeZ: 12800, a: null, b: null };
 const baseSel: SelectionLike = { m: null, t: "__center", shell: "HE", charge: null, folder: "__all", mortarFolder: "__all", targetFolder: "__all" };
@@ -13,6 +13,12 @@ describe("sanitizeCalib", () => {
   it("нечислові, від'ємні й нескінченні значення замінюються типовими", () => {
     const got = sanitizeCalib({ mode: "weird", size: -5, sizeZ: "12", a: { px: NaN, py: 0, x: 0, z: 0 }, b: "x" }, baseCalib);
     expect(got).toEqual({ mode: "size", size: 12800, sizeZ: 12800, a: null, b: null });
+  });
+  it("розмір понад межу (1e300 тощо) замінюється типовим", () => {
+    const got = sanitizeCalib({ mode: "size", size: 1e300, sizeZ: MAX_SIZE + 1 }, baseCalib);
+    expect(got.size).toBe(12800);
+    expect(got.sizeZ).toBe(12800);
+    expect(sanitizeCalib({ mode: "size", size: MAX_SIZE, sizeZ: MAX_SIZE }, baseCalib).size).toBe(MAX_SIZE);
   });
   it("не-об'єкт дає типове", () => {
     expect(sanitizeCalib(null, baseCalib)).toBe(baseCalib);

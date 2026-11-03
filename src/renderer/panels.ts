@@ -1,6 +1,7 @@
 import { clampPlacesScale, normalizePlacesLevel } from "@core/places";
 import { fmtM, gridRef, parseGrid, parseGridCorner } from "@core/geometry";
 import { PRESETS } from "@core/terrains";
+import { MAX_COORD, MAX_SIZE } from "@core/stateGuard";
 import { parseExchange } from "@core/markerExchange";
 import { TABLES, bearing, shellRange, solve, type WeaponId } from "@core/ballistics";
 import { gameRangeSpread, spreadRadii } from "@core/spread";
@@ -432,7 +433,7 @@ $<HTMLButtonElement>("fDel").onclick = () => {
 $<HTMLFormElement>("dlgForm").addEventListener("submit", (e) => {
   const x = parseFloat($<HTMLInputElement>("fX").value);
   const z = parseFloat($<HTMLInputElement>("fZ").value);
-  if (!isFinite(x) || !isFinite(z)) {
+  if (!isFinite(x) || !isFinite(z) || Math.abs(x) > MAX_COORD || Math.abs(z) > MAX_COORD) {
     e.preventDefault();
     toast(t("fillXZorGrid"));
     return;
@@ -1158,7 +1159,7 @@ $<HTMLButtonElement>("modePts").onclick = () => {
 };
 $<HTMLInputElement>("size").addEventListener("change", (e) => {
   const v = parseFloat((e.target as HTMLInputElement).value);
-  if (v >= 100) {
+  if (v >= 100 && v <= MAX_SIZE) {
     getCurrent().calib.size = v;
     scheduleSave();
     resetView();
@@ -1166,7 +1167,7 @@ $<HTMLInputElement>("size").addEventListener("change", (e) => {
 });
 $<HTMLInputElement>("sizeZ").addEventListener("change", (e) => {
   const v = parseFloat((e.target as HTMLInputElement).value);
-  if (v >= 100) {
+  if (v >= 100 && v <= MAX_SIZE) {
     getCurrent().calib.sizeZ = v;
     scheduleSave();
     resetView();
@@ -1510,7 +1511,8 @@ $<HTMLSelectElement>("terrainSel").onchange = async (e) => {
     const name = r ? String(r.name || "").trim().slice(0, 40) : "";
     if (!name) return;
     const size = parseFloat(r!.size);
-    const id = addCustomTerrain(name, size >= 100 ? size : 12800, size >= 100 ? size : 12800);
+    const ok = size >= 100 && size <= MAX_SIZE;
+    const id = addCustomTerrain(name, ok ? size : 12800, ok ? size : 12800);
     switchTerrain(id);
     fillTerrainSelect();
     onTerrainSwitched();

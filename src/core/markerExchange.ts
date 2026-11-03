@@ -5,6 +5,7 @@
  * Імпорт приймає також старий «резервний» формат ({markers:[...]} чи просто масив).
  */
 import { readCaption, readClass, type Affiliation, type MarkKind } from "./marks";
+import { MAX_COORD } from "./stateGuard";
 
 export type XMarkerType = "mortar" | "target" | "point";
 
@@ -73,7 +74,6 @@ export type ParseResult =
   | { ok: false; reason: "empty" | "json" | "shape" | "none" };
 
 /** Найбільша допустима за модулем координата імпортованої мітки, м. */
-const MAX_COORD = 1_000_000;
 /** Найбільше міток в одному імпорті: більше — файл-сміття, що заморозив би інтерфейс і переповнив сховище. */
 export const MAX_IMPORT_MARKERS = 5000;
 
