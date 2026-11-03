@@ -61,7 +61,7 @@ publish:
   owner: Ingwalde
   repo: mortar-tablet
 nsis:
-  # NSIS-інсталятор лише розпаковує файли й тихо запускається власним вікном установки (installer/Installer.cs, scripts/build-setup-ui.mjs);
+  # NSIS-інсталятор лише розпаковує файли й тихо запускається власним вікном установки (installer/*.cs, scripts/build-setup-ui.mjs);
   # з нього й робиться MortarTablet-Setup-<версія>.exe, тож цей файл має інше ім'я й не публікується
   oneClick: false
   allowToChangeInstallationDirectory: true
