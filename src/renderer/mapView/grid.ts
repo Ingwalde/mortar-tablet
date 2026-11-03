@@ -1,6 +1,6 @@
 import { metersPerPx } from "@core/geometry";
 import { currentMeta } from "../state";
-import { geometry, gfx, scrFromPx, scrFromWorld, view, worldFromScr } from "./state";
+import { geometry, gfx, safeTop, scrFromPx, scrFromWorld, view, worldFromScr } from "./state";
 
 export function drawGrid(c: Record<string, string>): void {
   const g = geometry();
@@ -48,16 +48,18 @@ export function drawGrid(c: Record<string, string>): void {
   gfx.ctx.font = '600 11px "IBM Plex Sans Condensed",sans-serif';
   gfx.ctx.fillStyle = c.ink;
   gfx.ctx.textBaseline = "top";
+  // Підписи не заходять під рядок стану телефона: верхній ряд стоїть під ним, лівий стовпець зникає, поки не вийде з-під нього.
+  const top = safeTop();
   const lw = labelStep === 1000 ? 2 : labelStep === 100 ? 3 : 4;
   const div = labelStep === 1000 ? 1000 : labelStep === 100 ? 100 : 10;
   if ((x1 - x0) / labelStep < 60) {
     for (let x = Math.ceil(x0 / labelStep) * labelStep; x <= x1; x += labelStep) {
       const s = scrFromWorld(x, z0).sx;
-      labelBox(pad(Math.round(x / div), lw), s + 3, 3, c);
+      labelBox(pad(Math.round(x / div), lw), s + 3, top + 3, c);
     }
     for (let z = Math.ceil(z0 / labelStep) * labelStep; z <= z1; z += labelStep) {
       const s = scrFromWorld(x0, z).sy;
-      labelBox(pad(Math.round(z / div), lw), 3, s - 15, c);
+      if (s - 15 >= top) labelBox(pad(Math.round(z / div), lw), 3, s - 15, c);
     }
   }
 }

@@ -44,11 +44,11 @@ canvas:active{cursor:grabbing}
 .cx-dot{fill:var(--target);stroke:rgba(0,0,0,.6);stroke-width:1.8;paint-order:stroke}
 
 header{position:absolute;left:16px;right:16px;top:16px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:10px 16px;border-radius:18px;background:var(--glass);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);
+  padding:10px 18px;border-radius:30px;background:var(--glass);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);
   border:1px solid var(--glass-border);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.01em}
 header .logo{flex:0 0 auto;width:30px;height:30px;display:block}
-.lg-bg{fill:var(--surface);stroke:var(--accent);stroke-opacity:.45;stroke-width:1.5}
+.lg-bg{fill:var(--surface)}
 .lg-ln{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linecap:round}
 .lg-dot{fill:var(--target)}
 .hl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
@@ -179,9 +179,10 @@ a.btn[hidden]{display:none}
 .remote #pickFile,.remote #downloadImport,.remote #clearMap{display:none}
 
 @media (max-width:760px){
-  :root{--sheet-h:48vh;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
+  :root{--sheet-h:48vh;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--head-top:calc(8px + var(--safe-t) + min(var(--safe-t),1px) * 12)}
   @supports (height:1dvh){:root{--sheet-h:min(48dvh,440px)}}
-  header{left:8px;right:8px;top:calc(8px + var(--safe-t));padding:6px 10px;border-radius:16px}
+  /* На iPhone з вирізом шапка стоїть нижче рядка стану, а між ними лишається місце для підписів сітки. */
+  header{left:8px;right:8px;top:var(--head-top);padding:6px 12px;border-radius:28px}
   header h1,#status{display:none}
   #terrainSel{max-width:none;flex:1}
   .hl{flex:1;flex-wrap:nowrap}
@@ -206,7 +207,7 @@ a.btn[hidden]{display:none}
   .tabs button{padding:8px 2px 7px;font-size:12px}
   /* Прокрутка йде аж до низу екрана; нижній відступ дає змогу докрутити останній елемент над домашньою смугою. */
   .pane{padding:10px 12px calc(18px + var(--safe-b))}
-  .mapbtns{right:12px;top:calc(64px + var(--safe-t))}
+  .mapbtns{right:16px;top:calc(var(--head-top) + 70px)}
   .readout{left:8px;right:8px;bottom:calc(var(--covered,0px) + 12px)}
   .coords .grid{font-size:18px}
   .solution-meta{grid-template-columns:1fr 1fr 1fr}
