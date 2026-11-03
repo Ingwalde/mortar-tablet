@@ -138,6 +138,15 @@ const safeProbe = document.createElement("div");
 safeProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px)";
 $("mapWrap").appendChild(safeProbe);
 
+const headerEl = document.querySelector("header");
+
+/** Смуга, яку займає шапка (px від верху карти): підписи сітки з-під неї не показуємо. */
+export function headerBand(): { top: number; bottom: number } | null {
+  if (!headerEl) return null;
+  const r = headerEl.getBoundingClientRect();
+  return r.height > 0 ? { top: r.top, bottom: r.bottom } : null;
+}
+
 export function safeTop(): number {
   return safeProbe.offsetHeight;
 }
