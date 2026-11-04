@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildExport, exchangeFileName, mergeImported, parseExchange, serializeExport, type XMarker } from "./markerExchange";
+import { MAX_IMPORT_MARKERS, buildExport, exchangeFileName, mergeImported, parseExchange, serializeExport, type XMarker } from "./markerExchange";
 
 const mk = (id: string, folder: string, type: XMarker["type"] = "target", extra: Partial<XMarker> = {}): XMarker => ({
   id,
@@ -127,5 +127,17 @@ describe("нові поля мітки (приналежність, вид, пі
     expect(a.caption!.startsWith("кулемет на вежі")).toBe(true);
     expect(b).toMatchObject({ type: "target", aff: "hostile", kind: "infantry" });
     expect(c).toMatchObject({ type: "mortar", aff: "friend", kind: "mortar" });
+  });
+});
+
+describe("parseExchange: межа кількості", () => {
+  it("зайві мітки відкидаються й рахуються як пропущені", () => {
+    const many = Array.from({ length: MAX_IMPORT_MARKERS + 25 }, (_, i) => ({ id: "m" + i, name: "n", type: "target", x: i, z: i }));
+    const r = parseExchange(JSON.stringify({ markers: many }));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.markers).toHaveLength(MAX_IMPORT_MARKERS);
+      expect(r.skipped).toBe(25);
+    }
   });
 });

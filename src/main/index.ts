@@ -66,7 +66,9 @@ function createWindow(): void {
   // Жодних переходів поза застосунком: сторінка планшета не повинна вести кудись інде.
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const here = mainWindow?.webContents.getURL() ?? "";
-    if (url !== here && !url.startsWith("file://") && !url.startsWith(process.env.ELECTRON_RENDERER_URL ?? "\u0000")) {
+    // та сама сторінка (перезавантаження, якір) дозволена; інший file:// — ні: вікно має привілеї, довільний локальний файл у ньому не потрібен
+    const page = (u: string): string => u.split("#")[0].split("?")[0];
+    if (page(url) !== page(here) && !url.startsWith(process.env.ELECTRON_RENDERER_URL ?? "\u0000")) {
       event.preventDefault();
       if (isAllowedExternalUrl(url)) void shell.openExternal(url);
     }

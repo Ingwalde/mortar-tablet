@@ -1,7 +1,7 @@
 import { app, net, protocol } from "electron";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { findPreset } from "../core/terrains";
 import { bundledMap } from "../core/bundledMaps";
 import { tileUrl } from "../core/onlineTiles";
@@ -23,6 +23,23 @@ export function pyramidDir(terrainId: string): string {
   return join(dataRoot(), "maps", terrainId);
 }
 
+/**
+ * Запис тайла в кеш через тимчасовий файл і перейменування: інакше паралельний запит (існує файл, але він ще дописується)
+ * віддав би обрізаний JPEG, а карта показала б його до перезапуску. Повертає false, якщо запис не вдався (тайл усе одно можна віддати).
+ */
+async function writeTileAtomic(cachePath: string, buf: Buffer): Promise<boolean> {
+  const tmp = `${cachePath}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    await mkdir(dirname(cachePath), { recursive: true });
+    await writeFile(tmp, buf);
+    await rename(tmp, cachePath);
+    return true;
+  } catch {
+    await rm(tmp, { force: true }).catch(() => undefined);
+    return false;
+  }
+}
+
 /** Онлайн-тайл reforger.recoil.org з дисковим кешем; null — нема такого тайла чи мережа недоступна. */
 export async function getOnlineTile(terrainId: string, lod: number, x: number, y: number): Promise<Buffer | null> {
   const preset = findPreset(terrainId);
@@ -35,8 +52,7 @@ export async function getOnlineTile(terrainId: string, lod: number, x: number, y
     const remote = await net.fetch(tileUrl(preset.tiles.base, lod, x, y));
     if (!remote.ok) return null;
     const buf = Buffer.from(await remote.arrayBuffer());
-    await mkdir(join(tileCacheDir(terrainId), String(lod), String(x)), { recursive: true });
-    await writeFile(cachePath, buf);
+    await writeTileAtomic(cachePath, buf);
     return buf;
   } catch {
     return null;
@@ -61,8 +77,8 @@ export async function ensureOnlineTile(terrainId: string, lod: number, x: number
       if (remote.status === 404) return "missing";
       if (!remote.ok) continue;
       const buf = Buffer.from(await remote.arrayBuffer());
-      await mkdir(join(tileCacheDir(terrainId), String(lod), String(x)), { recursive: true });
-      await writeFile(cachePath, buf);
+      // не вдалося покласти в кеш (диск повний чи лише для читання): для заздалегідного збереження це збій
+      if (!(await writeTileAtomic(cachePath, buf))) continue;
       return "ok";
     } catch {
       // мережа — пробуємо ще раз

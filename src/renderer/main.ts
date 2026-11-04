@@ -13,16 +13,29 @@ import { initSelectSheets } from "./selectSheet";
 import { parseInvite } from "@core/squad/config";
 import { openInvite } from "./squadPanel";
 
+/**
+ * Чекає, поки анімація емблеми на заставці догра до кінця — хоч коли вона стартувала (на телефоні сторінка
+ * може почати малюватись із запізненням) — і ще мить тримає готову емблему. Запобіжник — 2,5 с.
+ * Важку ініціалізацію запускаємо після цього: вона блокує потік і рвала б анімацію посеред кадрів.
+ */
+function splashPlayed(): Promise<void> {
+  const el = document.getElementById("splash");
+  if (!el || reducedMotion()) return Promise.resolve();
+  const own = document.getAnimations().filter((a) => {
+    const target = (a.effect as KeyframeEffect | null)?.target;
+    return !!target && el.contains(target);
+  });
+  const done = Promise.all(own.map((a) => a.finished.catch(() => undefined)));
+  const guard = new Promise<void>((resolve) => setTimeout(resolve, 2500));
+  return Promise.race([done, guard]).then(() => new Promise<void>((resolve) => setTimeout(resolve, 150)));
+}
+
 /** Заставку з іконкою знімаємо, щойно стан завантажено й інтерфейс готовий. */
 function hideSplash(): void {
   const el = document.getElementById("splash");
   if (!el) return;
-  // дамо анімації емблеми дограти (≈1 с від старту), але не затримуємо запуск довше
-  const wait = reducedMotion() ? 0 : Math.max(0, 1100 - performance.now());
-  setTimeout(() => {
-    el.classList.add("done");
-    setTimeout(() => el.remove(), 400);
-  }, wait);
+  el.classList.add("done");
+  setTimeout(() => el.remove(), 400);
 }
 
 function updateStatus(): void {
@@ -38,7 +51,9 @@ function initTitleBar(): void {
 
 async function boot(): Promise<void> {
   initTitleBar();
-  await loadState();
+  const stateLoaded = loadState();
+  await splashPlayed();
+  await stateLoaded;
   setLangSilent(getRoot().lang);
   document.documentElement.lang = getLang();
   applyStaticTranslations();

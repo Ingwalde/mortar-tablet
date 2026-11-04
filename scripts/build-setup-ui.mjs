@@ -1,4 +1,4 @@
-// Збирає MortarTablet-Setup-<версія>.exe: власне вікно установки (installer/Installer.cs) з вбудованим NSIS-інсталятором.
+// Збирає MortarTablet-Setup-<версія>.exe: власне вікно установки (installer/*.cs) з вбудованим NSIS-інсталятором.
 //   node scripts/build-setup-ui.mjs [--payload <файл>] [--out <файл>] [--no-latest]
 // Без параметрів бере dist/MortarTablet-Payload-<версія>.exe (його робить electron-builder, ціль nsis) і пише
 // dist/MortarTablet-Setup-<версія>.exe та переписує dist/latest.yml під цей файл (його завантажує автооновлення: файл у тихому режимі /S
@@ -62,7 +62,10 @@ const args = [
   `/resource:${versionFile},version.txt`,
   `/resource:${expectedFile},expected.txt`,
   `/resource:${join(root, "src", "renderer", "public", "icons", "icon-512.png")},emblem.png`,
-  join(root, "installer", "Installer.cs")
+  ...readdirSync(join(root, "installer"))
+    .filter((f) => f.endsWith(".cs"))
+    .sort()
+    .map((f) => join(root, "installer", f))
 ];
 try {
   execFileSync(csc, args, { stdio: "inherit" });

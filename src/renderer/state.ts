@@ -7,6 +7,7 @@ import { clampPlacesScale, normalizePlacesLevel, type PlaceTier } from "@core/pl
 import { webModMap } from "@core/webMirror";
 import { bundledMap } from "@core/bundledMaps";
 import { defaultSpread, normalizeSpread, type SpreadSettings } from "@core/spread";
+import { MAX_COORD, sanitizeCalib, sanitizeHeightsInfo, sanitizeMapState, sanitizeSel } from "@core/stateGuard";
 import { readCaption, readClass, type Affiliation, type LegacyType, type MarkKind } from "@core/marks";
 
 /** Снаряди кожної гармати з таблиць балістики (для налаштувань доступних снарядів). */
@@ -176,6 +177,7 @@ function normalizeMarker(m: unknown): Marker | null {
   if (!m || typeof m !== "object") return null;
   const r = m as Record<string, unknown>;
   if (!isFinite(Number(r.x)) || !isFinite(Number(r.z))) return null;
+  if (Math.abs(Number(r.x)) > MAX_COORD || Math.abs(Number(r.z)) > MAX_COORD) return null;
   const cls = readClass(r);
   const type: MarkerType = cls.type;
   const caption = readCaption(r.caption);
@@ -254,13 +256,10 @@ function normalizeTerrain(d: unknown, sizeX: number, sizeZ: number): TerrainStat
     if (Array.isArray(r.markers)) {
       n.markers = r.markers.map(normalizeMarker).filter((m): m is Marker => m !== null);
     }
-    if (r.calib && typeof r.calib === "object") Object.assign(n.calib, r.calib);
-    if ("map" in r) n.map = r.map as MapState | null;
-    if (r.sel && typeof r.sel === "object") Object.assign(n.sel, r.sel);
-    for (const key of ["folder", "mortarFolder", "targetFolder"] as const) {
-      if (typeof n.sel[key] !== "string") n.sel[key] = ALL_FOLDERS;
-    }
-    if (r.heights && typeof r.heights === "object") n.heights = r.heights as TerrainState["heights"];
+    n.calib = sanitizeCalib(r.calib, n.calib);
+    if ("map" in r) n.map = sanitizeMapState(r.map);
+    n.sel = sanitizeSel(r.sel, n.sel);
+    n.heights = sanitizeHeightsInfo(r.heights);
     if (Array.isArray(r.fireLog)) {
       n.fireLog = r.fireLog.map(normalizeFireLogEntry).filter((e): e is FireLogEntry => e !== null).slice(-FIRE_LOG_LIMIT);
     }
