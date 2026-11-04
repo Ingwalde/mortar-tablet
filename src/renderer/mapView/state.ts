@@ -133,9 +133,9 @@ coverProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hi
 
 $("mapWrap").appendChild(coverProbe);
 
-/** Верхній відступ під рядок стану телефона (вирізом): підписи сітки стоять нижче нього. Зонд бере env(safe-area-inset-top). */
+/** Верхній відступ під рядок стану телефона (вирізом): підписи сітки стоять нижче нього. Зонд бере env(safe-area-inset-top) і на екранах із вирізом ще смугу назви застосунку (14 px). */
 const safeProbe = document.createElement("div");
-safeProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px)";
+safeProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:calc(env(safe-area-inset-top,0px) + min(env(safe-area-inset-top,0px),1px) * 14)";
 $("mapWrap").appendChild(safeProbe);
 
 const headerEl = document.querySelector("header");
