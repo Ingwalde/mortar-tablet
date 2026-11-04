@@ -9,6 +9,9 @@ on:
       tag:
         description: "Release tag to attach the files to (empty: build artifact only)"
         required: false
+      only:
+        description: "With a tag: attach only this build (mac-arm64, mac-x64, linux-x64); empty: all of them"
+        required: false
 
 permissions:
   contents: write
@@ -19,9 +22,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Apple Silicon runners are often unavailable ("capacity constraints", the job is cancelled before it starts),
+          # so the arm64 app is built on the Intel runner with the arm64 native libraries swapped in.
           - name: mac-arm64
-            os: macos-latest
+            os: macos-15-intel
             args: --mac dmg --arm64
+            cpu: arm64
             files: "dist/*.dmg"
           - name: mac-x64
             os: macos-15-intel
@@ -45,6 +51,16 @@ jobs:
       - run: npm test
       - run: npm run licenses:collect
       - run: npx electron-vite build
+      - name: Native libraries for the target CPU
+        if: ${{ matrix.cpu != '' }}
+        shell: bash
+        run: |
+          set -e
+          npm install --no-save --force --os=darwin --cpu=${{ matrix.cpu }} sharp@$(node -p "require('sharp/package.json').version")
+          rm -rf node_modules/@img/sharp-darwin-x64 node_modules/@img/sharp-libvips-darwin-x64
+          ls node_modules/@img
+          test -d node_modules/@img/sharp-darwin-${{ matrix.cpu }}
+          test -d node_modules/@img/sharp-libvips-darwin-${{ matrix.cpu }}
       - run: npx electron-builder ${{ matrix.args }} --publish never
       - name: Package contents
         shell: bash
@@ -69,13 +85,25 @@ jobs:
           els=$(find dist -name "LICENSE.electron.txt" -o -name "LICENSES.chromium.html" | wc -l)
           echo "Electron/Chromium license files: $els"
           [ "$els" -ge 2 ] || { echo "Electron/Chromium licenses are missing"; exit 1; }
+      - name: Check the packaged libraries are for the target CPU
+        if: ${{ matrix.cpu != '' }}
+        shell: bash
+        run: |
+          set -e
+          res=$(ls -d dist/mac*/*.app/Contents/Resources | head -1)
+          unpacked="$res/app.asar.unpacked/node_modules/@img"
+          ls "$unpacked"
+          test -d "$unpacked/sharp-libvips-darwin-${{ matrix.cpu }}"
+          ! ls "$unpacked" | grep -q "darwin-x64"
+          file "$res"/../MacOS/* "$unpacked"/sharp-darwin-${{ matrix.cpu }}/lib/*.node
+          file "$res"/../MacOS/* "$unpacked"/sharp-darwin-${{ matrix.cpu }}/lib/*.node | grep -c "${{ matrix.cpu }}" | grep -qv "^0$"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.name }}
           path: ${{ matrix.files }}
           if-no-files-found: error
       - name: Attach to the release
-        if: ${{ inputs.tag != '' }}
+        if: ${{ inputs.tag != '' && (inputs.only == '' || inputs.only == matrix.name) }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
