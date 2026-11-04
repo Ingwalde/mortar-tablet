@@ -1,6 +1,6 @@
 import "./platform";
 import { getRoot, loadState } from "./state";
-import { resetView } from "./mapView";
+import { releaseDraw, requestDraw, resetView } from "./mapView";
 import { initPanels } from "./panels";
 import { $, toast } from "./dom";
 import { isOwnShareUrl } from "@core/shareLink";
@@ -62,6 +62,10 @@ async function boot(): Promise<void> {
   initSelectSheets();
   onLangChange(updateStatus);
   updateStatus();
+  // перший кадр малюємо вже під заставкою, а знімаємо її після нього — зникнення тоді не смикається
+  releaseDraw();
+  requestDraw();
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   hideSplash();
 
   // Посилання обміну в адресі сторінки (#s=…): відкрити імпорт і прибрати фрагмент з адреси.
@@ -94,6 +98,7 @@ async function boot(): Promise<void> {
 }
 
 void boot().catch((e) => {
+  releaseDraw();
   hideSplash();
   throw e;
 });
