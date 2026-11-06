@@ -103,6 +103,11 @@ try {
     if (await page.evaluate("!!document.getElementById('cv') && !!window.api")) break;
     await sleep(250);
   }
+  // інтерфейс оживає після заставки (анімація емблеми, потім ініціалізація панелей): до цього кнопки ще без обробників
+  for (let i = 0; i < 80; i++) {
+    if (await page.evaluate("!document.getElementById('splash') || document.getElementById('splash').classList.contains('done')")) break;
+    await sleep(250);
+  }
   check(await page.evaluate("!!document.getElementById('cv')"), "сторінка планшета завантажилась (є полотно карти)");
   check(await page.evaluate("typeof window.api?.store?.load === 'function' && window.api.remote === false"), "preload дає window.api");
   check(
