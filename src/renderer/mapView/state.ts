@@ -133,9 +133,9 @@ coverProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hi
 
 $("mapWrap").appendChild(coverProbe);
 
-/** Верхній відступ під рядок стану телефона (вирізом): підписи сітки стоять нижче нього. Зонд бере env(safe-area-inset-top) і на екранах із вирізом ще смугу назви застосунку (14 px). */
+/** Верхній відступ під рядок стану телефона (вирізом): підписи сітки стоять нижче нього. Зонд бере env(safe-area-inset-top) і на Dynamic Island ще зсув назви застосунку (--brand-shift): вона в рядку стану, тому підписи сітки лишаються просто під ним. */
 const safeProbe = document.createElement("div");
-safeProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:calc(env(safe-area-inset-top,0px) + min(env(safe-area-inset-top,0px),1px) * 14)";
+safeProbe.style.cssText = "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:calc(env(safe-area-inset-top,0px) + max(0px, env(safe-area-inset-top,0px) - 50px) * .5)";
 $("mapWrap").appendChild(safeProbe);
 
 const headerEl = document.querySelector("header");

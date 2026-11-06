@@ -182,10 +182,10 @@ a.btn[hidden]{display:none}
 #brand{display:none}
 
 @media (max-width:760px){
-  :root{--sheet-h:48vh;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--head-top:calc(20px + var(--safe-t) + min(var(--safe-t),1px) * 14)}
+  :root{--sheet-h:48vh;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--brand-shift:calc(max(0px, var(--safe-t) - 50px) * .5);--head-top:calc(20px + var(--safe-t) + var(--brand-shift))}
   @supports (height:1dvh){:root{--sheet-h:min(48dvh,440px)}}
-  /* На iPhone з вирізом шапка стоїть нижче рядка стану: у смузі між ними — назва застосунку на суцільному тлі (під рядком стану теж), під нею підписи сітки. */
-  #brand{display:block;position:fixed;left:0;right:0;top:0;box-sizing:border-box;height:calc(var(--safe-t) + min(var(--safe-t),1px) * 16);padding-top:calc(var(--safe-t) + min(var(--safe-t),1px) * 2);overflow:hidden;background:var(--bg);text-align:center;font-size:11px;line-height:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none;user-select:none;z-index:15}
+  /* iPhone з вирізом: назва застосунку стоїть у рядку стану, під самим вирізом, на суцільному тлі; шапка нижче, між ними підписи сітки. На Dynamic Island назва опущена на --brand-shift, щоб не зачіпати острівець. */
+  #brand{display:block;position:fixed;left:0;right:0;top:0;box-sizing:border-box;height:calc(var(--safe-t) + var(--brand-shift));padding-top:calc(max(0px, var(--safe-t) - 14px) + var(--brand-shift));overflow:hidden;background:var(--bg);text-align:center;font-size:11px;line-height:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none;user-select:none;z-index:15}
   header{left:8px;right:8px;top:var(--head-top);padding:6px 12px;border-radius:28px}
   header h1,#status{display:none}
   #terrainSel{max-width:none;flex:1}
@@ -200,6 +200,8 @@ a.btn[hidden]{display:none}
   /* Схована панель: бровка займає всю висоту, включно зі смугою під домашньою смугою iPhone. */
   .app.sheet-collapsed .sheet-handle{height:calc(29px + var(--safe-b))}
   .app.sheet-collapsed .sheet-handle::after{top:11px}
+  /* Вікно iOS коротше за екран (ios-short): смужка шторки — найнижче, що ми можемо малювати, смужку-ручку притискаємо до її низу. */
+  html.ios-short .app.sheet-collapsed .sheet-handle::after{top:18px}
   .app:not(.dragging) .panel{transition:height .18s ease}
   .app:not(.dragging) .readout{transition:bottom .18s ease}
   .app:not(.dragging) .cross{transition:top .18s ease}
